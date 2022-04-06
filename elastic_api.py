@@ -125,6 +125,26 @@ def create_all_pizza_image_relations(
                 )
 
 
+def create_flow(access_token: str, name: str, slug: str, description: str) -> dict:
+    headers = {"Authorization": f"Bearer {access_token}"}
+    json_data = {
+        "data": {
+            "type": "flow",
+            "name": name,
+            "slug": slug,
+            "description": description,
+            "enabled": True,
+        },
+    }
+
+    response = requests.post(
+        "https://api.moltin.com/v2/flows", headers=headers, json=json_data
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def main():
     load_dotenv()
     access_token = get_credential_token(
@@ -139,12 +159,13 @@ def main():
         url="https://dvmn.org/filer/canonical/1558904588/129/"
     )
     #     pizza_name = pizza["name"]
-    all_products = get_all_products(access_token)
-    create_all_pizza_image_relations(
+    new_flow = create_flow(
         access_token=access_token,
-        all_products=all_products,
-        pizza_menus_data=pizza_menus_data,
+        name="Pizzeria",
+        slug="pizzeria",
+        description="Custom pizzeria flow",
     )
+    pprint(new_flow)
 
 
 if __name__ == "__main__":
