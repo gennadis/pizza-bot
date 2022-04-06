@@ -7,12 +7,11 @@ def get_menu_markup(elastic_token: str) -> InlineKeyboardMarkup:
     product_names_and_ids = [(product["name"], product["id"]) for product in products]
 
     keyboard = [
-        [
-            InlineKeyboardButton(text=product_name, callback_data=product_id)
-            for product_name, product_id in product_names_and_ids
-        ],
-        [InlineKeyboardButton("Cart", callback_data="cart")],
+        [InlineKeyboardButton(text=product_name, callback_data=product_id)]
+        for product_name, product_id in product_names_and_ids
     ]
+    keyboard.append([InlineKeyboardButton("Cart", callback_data="cart")])
+
     menu_markup = InlineKeyboardMarkup(keyboard)
 
     return menu_markup
