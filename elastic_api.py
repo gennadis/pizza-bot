@@ -1,10 +1,7 @@
-import os
+import time
 import urllib
-from pprint import pprint
-
 
 import requests
-from dotenv import load_dotenv
 
 
 def get_json_data(url: str) -> list[dict]:
@@ -27,8 +24,16 @@ def get_credential_token(client_id: str, client_secret: str) -> dict:
     return response.json()
 
 
-def get_all_products(access_token: str) -> list[dict]:
-    headers = {"Authorization": f"Bearer {access_token}"}
+def get_new_credential_token(
+    credential_token: dict, client_id: str, client_secret: str
+):
+    if credential_token["expires"] <= time.time():
+        new_credential_token = get_credential_token(client_id, client_secret)
+        return new_credential_token
+
+
+def get_all_products(credential_token: str) -> list[dict]:
+    headers = {"Authorization": f"Bearer {credential_token}"}
     payload = {
         "page[limit]": "100",
         "page[offset]": "0",
@@ -44,8 +49,8 @@ def get_all_products(access_token: str) -> list[dict]:
     return response.json()
 
 
-def create_product(access_token: str, product_details: dict, sku: int) -> dict:
-    headers = {"Authorization": f"Bearer {access_token}"}
+def create_product(credential_token: str, product_details: dict, sku: int) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
     json_data = {
         "data": {
             "type": "product",
@@ -74,8 +79,8 @@ def create_product(access_token: str, product_details: dict, sku: int) -> dict:
     return response.json()
 
 
-def create_pizza_image(access_token: str, image_url: str) -> dict:
-    headers = {"Authorization": f"Bearer {access_token}"}
+def create_pizza_image(credential_token: str, image_url: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
     files = {
         "file_location": (None, image_url),
     }
@@ -87,8 +92,10 @@ def create_pizza_image(access_token: str, image_url: str) -> dict:
     return response.json()
 
 
-def create_pizza_image_relationship(access_token: str, product_id: str, image_id: str):
-    headers = {"Authorization": f"Bearer {access_token}"}
+def create_pizza_image_relationship(
+    credential_token: str, product_id: str, image_id: str
+):
+    headers = {"Authorization": f"Bearer {credential_token}"}
     json_data = {
         "data": {
             "type": "main_image",
@@ -106,7 +113,7 @@ def create_pizza_image_relationship(access_token: str, product_id: str, image_id
 
 
 def create_all_pizza_image_relations(
-    access_token: str,
+    credential_token: str,
     all_products: list[dict],
     pizza_menus_data: list[dict],
 ):
@@ -114,19 +121,19 @@ def create_all_pizza_image_relations(
         for product in all_products["data"]:
             if pizza.get("name") == product.get("name"):
                 pizza_image = create_pizza_image(
-                    access_token=access_token,
+                    credential_token=credential_token,
                     image_url=pizza["product_image"]["url"],
                 )
                 pizza_image_id = pizza_image["data"]["id"]
                 create_pizza_image_relationship(
-                    access_token=access_token,
+                    credential_token=credential_token,
                     product_id=product["id"],
                     image_id=pizza_image_id,
                 )
 
 
-def create_flow(access_token: str, name: str, slug: str, description: str) -> dict:
-    headers = {"Authorization": f"Bearer {access_token}"}
+def create_flow(credential_token: str, name: str, slug: str, description: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
     json_data = {
         "data": {
             "type": "flow",
@@ -146,9 +153,9 @@ def create_flow(access_token: str, name: str, slug: str, description: str) -> di
 
 
 def create_field(
-    access_token: str, name: str, slug: str, description: str, flow_id: str
+    credential_token: str, name: str, slug: str, description: str, flow_id: str
 ) -> dict:
-    headers = {"Authorization": f"Bearer {access_token}"}
+    headers = {"Authorization": f"Bearer {credential_token}"}
     json_data = {
         "data": {
             "type": "field",
@@ -178,7 +185,7 @@ def create_field(
 
 
 def create_pizzeria_entry(
-    access_token: str,
+    credential_token: str,
     pizzeria_slug: str,
     address: str,
     alias: str,
@@ -186,7 +193,7 @@ def create_pizzeria_entry(
     latitude: str,
 ):
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {credential_token}",
         "Content-Type": "application/json",
     }
     json_data = {
@@ -209,31 +216,130 @@ def create_pizzeria_entry(
     return response.json()
 
 
-def main():
-    load_dotenv()
-    access_token = get_credential_token(
-        client_id=os.getenv("ELASTIC_CLIENT_ID"),
-        client_secret=os.getenv("ELASTIC_CLIENT_SECRET"),
-    ).get("access_token")
-
-    pizza_addresses_data = get_json_data(
-        url="https://dvmn.org/filer/canonical/1558904587/128/"
+def add_product_to_cart(
+    credential_token: str, product_id: str, quantity: int, cart_id: str
+) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    json_data = {
+        "data": {
+            "id": product_id,
+            "type": "cart_item",
+            "quantity": quantity,
+        }
+    }
+    response = requests.post(
+        f"https://api.moltin.com/v2/carts/{cart_id}/items",
+        headers=headers,
+        json=json_data,
     )
-    pizza_menus_data = get_json_data(
-        url="https://dvmn.org/filer/canonical/1558904588/129/"
-    )
+    response.raise_for_status()
 
-    for pizzeria in pizza_addresses_data:
-        new_entry = create_pizzeria_entry(
-            access_token=access_token,
-            pizzeria_slug="pizzeria",
-            address=pizzeria["address"]["full"],
-            alias=pizzeria["alias"],
-            longitude=pizzeria["coordinates"]["lon"],
-            latitude=pizzeria["coordinates"]["lat"],
+    return response.json()
+
+
+def delete_product_from_cart(
+    credential_token: str, cart_id: str, product_id: str
+) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.delete(
+        f"https://api.moltin.com/v2/carts/{cart_id}/items/{product_id}", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_cart(credential_token: str, cart_id: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.get(
+        f"https://api.moltin.com/v2/carts/{cart_id}", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_cart_items(credential_token: str, cart_id: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.get(
+        f"https://api.moltin.com/v2/carts/{cart_id}/items", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_cart_summary_text(cart_items: dict) -> str:
+    total_price = 0
+    products = []
+
+    for product in cart_items:
+        name = product["name"]
+        price = (product["value"]["amount"]) / 100
+        quantity = product["quantity"]
+        description = product["description"]
+
+        total_price += price * quantity
+
+        product_summary: str = get_product_summary_text(
+            name, price, quantity, description
         )
-        pprint(new_entry)
+        products.append(product_summary)
+
+    formatted_total_price = "{:.2f}".format(total_price)
+    message_total_price = f"TOTAL: ${formatted_total_price}"
+
+    message_products_lines = "\n".join(products)
+    cart_summary = f"{message_total_price}\n{message_products_lines}"
+
+    return cart_summary
 
 
-if __name__ == "__main__":
-    main()
+def get_product(credential_token: str, product_id: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.get(
+        f"https://api.moltin.com/v2/products/{product_id}", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_file_href(credential_token: str, file_id: str) -> str:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.get(
+        f"https://api.moltin.com/v2/files/{file_id}", headers=headers
+    )
+    response.raise_for_status()
+    file_details = response.json()["data"]
+
+    return file_details["link"]["href"]
+
+
+def create_customer(credential_token: str, user_id: str, email: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    payload = {
+        "data": {
+            "type": "customer",
+            "name": str(user_id),
+            "email": str(email),
+            "password": "mysecretpassword",
+        },
+    }
+
+    response = requests.post(
+        "https://api.moltin.com/v2/customers", headers=headers, json=payload
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_customer(credential_token: str, customer_id: str) -> dict:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.get(
+        f"https://api.moltin.com/v2/customers/{customer_id}", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
