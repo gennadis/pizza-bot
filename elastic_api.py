@@ -269,6 +269,27 @@ def get_cart_items(credential_token: str, cart_id: str) -> dict:
     return response.json()
 
 
+def get_product_summary_text(
+    name: str, price: int, quantity: int, description: str
+) -> str:
+    formatted_price = "{:.2f}".format(price)
+    formatted_subtotal = "{:.2f}".format(price * quantity)
+    product_summary_text = f"""
+        Name: {name}
+        ------
+        Price: ${formatted_price} per unit
+        Quantity: {quantity} units
+        Subtotal: ${formatted_subtotal}
+        ------
+        Description: {description}
+        ------------
+        """
+    formatted_product_summary_text = "\n".join(
+        line.strip() for line in product_summary_text.splitlines()
+    )
+    return formatted_product_summary_text
+
+
 def get_cart_summary_text(cart_items: dict) -> str:
     total_price = 0
     products = []
