@@ -19,11 +19,7 @@ def get_menu_markup(elastic_token: str) -> InlineKeyboardMarkup:
 
 def get_description_markup() -> InlineKeyboardMarkup:
     keyboard = [
-        [
-            InlineKeyboardButton("1 unit", callback_data=1),
-            InlineKeyboardButton("5 units", callback_data=5),
-            InlineKeyboardButton("10 units", callback_data=10),
-        ],
+        [InlineKeyboardButton("Add to cart", callback_data=1)],
         [InlineKeyboardButton(text="Back to menu", callback_data="back")],
         [InlineKeyboardButton("Cart", callback_data="cart")],
     ]
