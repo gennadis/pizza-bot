@@ -304,7 +304,7 @@ def get_cart_summary_text(cart_items: dict) -> str:
         )
         products.append(product_summary)
 
-    message_total_price = f"TOTAL: {total_price} RUB"
+    message_total_price = f"ИТОГО: {total_price} ₽"
 
     message_products_lines = "\n".join(products)
     cart_summary = f"{message_total_price}\n{message_products_lines}"
