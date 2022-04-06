@@ -1,5 +1,7 @@
 import os
+import urllib
 from pprint import pprint
+
 
 import requests
 from dotenv import load_dotenv
@@ -20,6 +22,23 @@ def get_credential_token(client_id: str, client_secret: str) -> dict:
     }
 
     response = requests.post(url="https://api.moltin.com/oauth/access_token", data=data)
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_all_products(access_token: str) -> list[dict]:
+    headers = {"Authorization": f"Bearer {access_token}"}
+    payload = {
+        "page[limit]": "100",
+        "page[offset]": "0",
+    }
+
+    response = requests.get(
+        url="https://api.moltin.com/v2/products",
+        headers=headers,
+        params=urllib.parse.urlencode(payload, safe="[]"),
+    )
     response.raise_for_status()
 
     return response.json()
@@ -81,12 +100,16 @@ def main():
     pizza_menus_data = get_json_data(
         url="https://dvmn.org/filer/canonical/1558904588/129/"
     )
-    test_pizza = pizza_menus_data[0]
-    test_pizza_image = create_pizza_image(
-        access_token=access_token,
-        image_url=test_pizza["product_image"]["url"],
-    )
-    pprint(test_pizza_image)
+
+    all_products = get_all_products(access_token)
+    pprint(all_products)
+
+    # test_pizza = pizza_menus_data[0]
+    # test_pizza_image = create_pizza_image(
+    #     access_token=access_token,
+    #     image_url=test_pizza["product_image"]["url"],
+    # )
+    # pprint(test_pizza_image)
 
 
 if __name__ == "__main__":
