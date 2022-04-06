@@ -120,7 +120,7 @@ def handle_description(update: Update, context: CallbackContext) -> State:
 @validate_token_expiration
 def update_cart(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
-    query.answer()
+    query.answer("Товар добавлен в корзину")
 
     elastic_token = context.bot_data.get("elastic")
     elastic_api.add_product_to_cart(
@@ -136,7 +136,6 @@ def update_cart(update: Update, context: CallbackContext) -> State:
 @validate_token_expiration
 def handle_cart(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
-    query.answer()
 
     elastic_token = context.bot_data.get("elastic")
     cart_items = elastic_api.get_cart_items(
@@ -146,6 +145,7 @@ def handle_cart(update: Update, context: CallbackContext) -> State:
 
     product_id = query.data
     if product_id in [product["id"] for product in cart_items["data"]]:
+        query.answer("Товар удален из корзины")
         elastic_api.delete_product_from_cart(
             credential_token=elastic_token,
             cart_id=update.effective_user.id,
