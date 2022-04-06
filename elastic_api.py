@@ -272,14 +272,12 @@ def get_cart_items(credential_token: str, cart_id: str) -> dict:
 def get_product_summary_text(
     name: str, price: int, quantity: int, description: str
 ) -> str:
-    formatted_price = "{:.2f}".format(price)
-    formatted_subtotal = "{:.2f}".format(price * quantity)
     product_summary_text = f"""
         Name: {name}
         ------
-        Price: ${formatted_price} per unit
+        Price: {price} RUB per unit
         Quantity: {quantity} units
-        Subtotal: ${formatted_subtotal}
+        Subtotal: {price * quantity} RUB
         ------
         Description: {description}
         ------------
@@ -296,7 +294,7 @@ def get_cart_summary_text(cart_items: dict) -> str:
 
     for product in cart_items:
         name = product["name"]
-        price = (product["value"]["amount"]) / 100
+        price = product["value"]["amount"]
         quantity = product["quantity"]
         description = product["description"]
 
@@ -307,8 +305,7 @@ def get_cart_summary_text(cart_items: dict) -> str:
         )
         products.append(product_summary)
 
-    formatted_total_price = "{:.2f}".format(total_price)
-    message_total_price = f"TOTAL: ${formatted_total_price}"
+    message_total_price = f"TOTAL: {total_price} RUB"
 
     message_products_lines = "\n".join(products)
     cart_summary = f"{message_total_price}\n{message_products_lines}"
