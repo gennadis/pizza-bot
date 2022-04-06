@@ -90,12 +90,28 @@ def handle_description(update: Update, context: CallbackContext) -> State:
     product = elastic_api.get_product(
         credential_token=elastic_token, product_id=query.data
     )
+    product_id = product["data"]["id"]
+
+    cart_items = elastic_api.get_cart_items(
+        credential_token=elastic_token,
+        cart_id=update.effective_user.id,
+    )
+    products_in_cart = sum(
+        [
+            product["quantity"]
+            for product in cart_items["data"]
+            if product_id == product["product_id"]
+        ]
+    )
 
     product_details = product["data"]
     product_description = f"""
         Название: {product_details['name']}
         Стоимость: {product_details['meta']['display_price']['with_tax']['formatted']} за шт.
-        Описание: {product_details['description']}"""
+        Описание: {product_details['description']}
+        
+        В корзине: {products_in_cart} шт.
+        """
     formatted_product_description = "\n".join(
         line.strip() for line in product_description.splitlines()
     )
