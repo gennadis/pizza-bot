@@ -71,8 +71,8 @@ def handle_menu(update: Update, context: CallbackContext) -> State:
     update.effective_message.reply_text(
         text=dedent(
             f"""
-            Hi, {user_first_name}! 
-            Welcome to 'Pizza time' pizzeria!
+            Привет, {user_first_name}! 
+            Добро пожаловать в пиццерию "Pizza time"!
             """
         ),
         reply_markup=products_markup,
@@ -93,11 +93,9 @@ def handle_description(update: Update, context: CallbackContext) -> State:
 
     product_details = product["data"]
     product_description = f"""
-        Name: {product_details['name']}
-        ------
-        Price: {product_details['meta']['display_price']['with_tax']['formatted']} per unit
-        ------
-        Description: {product_details['description']}"""
+        Название: {product_details['name']}
+        Стоимость: {product_details['meta']['display_price']['with_tax']['formatted']} за шт.
+        Описание: {product_details['description']}"""
     formatted_product_description = "\n".join(
         line.strip() for line in product_description.splitlines()
     )
@@ -172,8 +170,8 @@ def handle_user_email(update: Update, context: CallbackContext) -> State:
     update.effective_user.send_message(
         text=dedent(
             f"""
-            Dear {user_first_name},
-            please leave your email to get a call from our manager.
+            {user_first_name},
+            оставьте адрес вашей электронной почты, наш менеджер свяжется с вами.
             """
         ),
         reply_markup=keyboards.get_email_markup(),
@@ -199,9 +197,8 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     update.effective_user.send_message(
         text=dedent(
             f"""
-            Your order ID is {customer["id"].split("-")[0]}.
-            Thank you for placing order in 'Pizza time' pizzeria.
-            Our manager will get in touch with you soon on {customer["email"]}.
+            Номер вашего заказа - {customer["id"].split("-")[0]}.
+            Наш менеджер направит счет на почту {customer["email"]}.
             """
         ),
         reply_markup=keyboards.get_email_markup(),

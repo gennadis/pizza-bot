@@ -273,14 +273,13 @@ def get_product_summary_text(
     name: str, price: int, quantity: int, description: str
 ) -> str:
     product_summary_text = f"""
-        Name: {name}
-        ------
-        Price: {price} RUB per unit
-        Quantity: {quantity} units
-        Subtotal: {price * quantity} RUB
-        ------
-        Description: {description}
-        ------------
+        Название: {name}
+        Описание: {description}
+
+        Стоимость: {price} ₽ за шт.
+        Количество: {quantity} шт.
+        Подитог: {price * quantity} ₽
+        -----------------
         """
     formatted_product_summary_text = "\n".join(
         line.strip() for line in product_summary_text.splitlines()
