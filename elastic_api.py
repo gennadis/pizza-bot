@@ -105,6 +105,26 @@ def create_pizza_image_relationship(access_token: str, product_id: str, image_id
     return response.json()
 
 
+def create_all_pizza_image_relations(
+    access_token: str,
+    all_products: list[dict],
+    pizza_menus_data: list[dict],
+):
+    for pizza in pizza_menus_data:
+        for product in all_products["data"]:
+            if pizza.get("name") == product.get("name"):
+                pizza_image = create_pizza_image(
+                    access_token=access_token,
+                    image_url=pizza["product_image"]["url"],
+                )
+                pizza_image_id = pizza_image["data"]["id"]
+                create_pizza_image_relationship(
+                    access_token=access_token,
+                    product_id=product["id"],
+                    image_id=pizza_image_id,
+                )
+
+
 def main():
     load_dotenv()
     access_token = get_credential_token(
@@ -118,7 +138,13 @@ def main():
     pizza_menus_data = get_json_data(
         url="https://dvmn.org/filer/canonical/1558904588/129/"
     )
-    pprint(pizza_menus_data)
+    #     pizza_name = pizza["name"]
+    all_products = get_all_products(access_token)
+    create_all_pizza_image_relations(
+        access_token=access_token,
+        all_products=all_products,
+        pizza_menus_data=pizza_menus_data,
+    )
 
 
 if __name__ == "__main__":
