@@ -177,6 +177,38 @@ def create_field(
     return response.json()
 
 
+def create_pizzeria_entry(
+    access_token: str,
+    pizzeria_slug: str,
+    address: str,
+    alias: str,
+    longitude: str,
+    latitude: str,
+):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    json_data = {
+        "data": {
+            "type": "entry",
+            "address": address,
+            "alias": alias,
+            "longitude": longitude,
+            "latitude": latitude,
+        }
+    }
+
+    response = requests.post(
+        f"https://api.moltin.com/v2/flows/{pizzeria_slug}/entries",
+        headers=headers,
+        json=json_data,
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def main():
     load_dotenv()
     access_token = get_credential_token(
@@ -190,23 +222,17 @@ def main():
     pizza_menus_data = get_json_data(
         url="https://dvmn.org/filer/canonical/1558904588/129/"
     )
-    #     pizza_name = pizza["name"]
-    pizzeria_flow = create_flow(
-        access_token=access_token,
-        name="Pizzeria",
-        slug="pizzeria",
-        description="Custom pizzeria flow",
-    )
-    pizzeria_flow_id = pizzeria_flow["data"]["id"]
-    for field in ["Address", "Alias", "Longitude", "Latitude"]:
-        new_field = create_field(
+
+    for pizzeria in pizza_addresses_data:
+        new_entry = create_pizzeria_entry(
             access_token=access_token,
-            name=field,
-            slug=field.lower(),
-            description=f"{field} description",
-            flow_id=pizzeria_flow_id,
+            pizzeria_slug="pizzeria",
+            address=pizzeria["address"]["full"],
+            alias=pizzeria["alias"],
+            longitude=pizzeria["coordinates"]["lon"],
+            latitude=pizzeria["coordinates"]["lat"],
         )
-        pprint(new_field)
+        pprint(new_entry)
 
 
 if __name__ == "__main__":
