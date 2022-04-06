@@ -87,6 +87,24 @@ def create_pizza_image(access_token: str, image_url: str) -> dict:
     return response.json()
 
 
+def create_pizza_image_relationship(access_token: str, product_id: str, image_id: str):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    json_data = {
+        "data": {
+            "type": "main_image",
+            "id": image_id,
+        },
+    }
+    response = requests.post(
+        f"https://api.moltin.com/v2/products/{product_id}/relationships/main-image",
+        headers=headers,
+        json=json_data,
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def main():
     load_dotenv()
     access_token = get_credential_token(
@@ -100,16 +118,7 @@ def main():
     pizza_menus_data = get_json_data(
         url="https://dvmn.org/filer/canonical/1558904588/129/"
     )
-
-    all_products = get_all_products(access_token)
-    pprint(all_products)
-
-    # test_pizza = pizza_menus_data[0]
-    # test_pizza_image = create_pizza_image(
-    #     access_token=access_token,
-    #     image_url=test_pizza["product_image"]["url"],
-    # )
-    # pprint(test_pizza_image)
+    pprint(pizza_menus_data)
 
 
 if __name__ == "__main__":
