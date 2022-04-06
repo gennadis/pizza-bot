@@ -30,15 +30,11 @@ def get_description_markup() -> InlineKeyboardMarkup:
 
 def get_cart_markup(cart_items: dict) -> InlineKeyboardMarkup:
     keyboard = [
-        [
-            InlineKeyboardButton(
-                f"Убрать {product['name']} из корзины", callback_data=product["id"]
-            )
-            for product in cart_items["data"]
-        ],
-        [InlineKeyboardButton(text="К оплате", callback_data="checkout")],
-        [InlineKeyboardButton(text="В меню", callback_data="back")],
+        [InlineKeyboardButton(f"Убрать {product['name']}", callback_data=product["id"])]
+        for product in cart_items["data"]
     ]
+    keyboard.append([InlineKeyboardButton(text="К оплате", callback_data="checkout")])
+    keyboard.append([InlineKeyboardButton(text="В меню", callback_data="back")])
     cart_markup = InlineKeyboardMarkup(keyboard)
 
     return cart_markup
