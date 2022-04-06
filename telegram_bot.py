@@ -96,7 +96,6 @@ def handle_description(update: Update, context: CallbackContext) -> State:
         Name: {product_details['name']}
         ------
         Price: {product_details['meta']['display_price']['with_tax']['formatted']} per unit
-        Stock: {product_details['meta']['stock']['level']} units available
         ------
         Description: {product_details['description']}"""
     formatted_product_description = "\n".join(
