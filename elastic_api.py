@@ -55,6 +55,19 @@ def create_product(access_token: str, product_details: dict, sku: int) -> dict:
     return response.json()
 
 
+def create_pizza_image(access_token: str, image_url: str) -> dict:
+    headers = {"Authorization": f"Bearer {access_token}"}
+    files = {
+        "file_location": (None, image_url),
+    }
+    response = requests.post(
+        "https://api.moltin.com/v2/files", headers=headers, files=files
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def main():
     load_dotenv()
     access_token = get_credential_token(
@@ -68,14 +81,12 @@ def main():
     pizza_menus_data = get_json_data(
         url="https://dvmn.org/filer/canonical/1558904588/129/"
     )
-
-    for count, pizza in enumerate(iterable=pizza_menus_data, start=1):
-        product = create_product(
-            access_token=access_token,
-            product_details=pizza,
-            sku=count,
-        )
-        print(product)
+    test_pizza = pizza_menus_data[0]
+    test_pizza_image = create_pizza_image(
+        access_token=access_token,
+        image_url=test_pizza["product_image"]["url"],
+    )
+    pprint(test_pizza_image)
 
 
 if __name__ == "__main__":
