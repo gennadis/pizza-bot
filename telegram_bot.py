@@ -202,10 +202,9 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     elastic_token = context.bot_data.get("elastic")
 
     if update.message.location:
-        user_coordinates = (
-            update.message.location.longitude,
-            update.message.location.latitude,
-        )
+        longitude = update.message.location.longitude
+        latitude = update.message.location.latitude
+        user_coordinates = (longitude, latitude)
     else:
         geocode_token = context.bot_data.get("geocode")
         try:
@@ -228,6 +227,15 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     )["data"]
     nearest_pizzeria = geocode.get_nearest_pizzeria(
         user_coordinates=user_coordinates, pizzerias=pizzerias
+    )
+
+    longitude, latitude = user_coordinates
+    coordinates_entry = elastic_api.create_coordinates_entry(
+        credential_token=elastic_token,
+        coordinates_slug="coordinates",
+        telegram_id=update.effective_user.id,
+        longitude=longitude,
+        latitude=latitude,
     )
 
     if nearest_pizzeria["distance"] <= 0.5:
