@@ -233,7 +233,9 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     update.effective_user.send_message(
         text=dedent(
             f"""
-            Ближайшая пиццерия: {nearest_pizzeria['address']}
+            Ближайшая пиццерия:
+            {nearest_pizzeria['address']}
+            {nearest_pizzeria['distance']} км.
             """
         ),
         reply_markup=keyboards.get_email_markup(),
