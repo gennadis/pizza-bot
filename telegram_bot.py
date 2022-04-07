@@ -229,6 +229,8 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     nearest_pizzeria = geocode.get_nearest_pizzeria(
         user_coordinates=user_coordinates, pizzerias=pizzerias
     )
+    context.bot_data["pizzeria"] = nearest_pizzeria
+    context.bot_data["coordinates"] = user_coordinates
 
     longitude, latitude = user_coordinates
     coordinates_entry = elastic_api.create_coordinates_entry(
@@ -262,6 +264,21 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     )
 
     return State.HANDLE_DELIVERY
+
+
+@validate_token_expiration
+def handle_delivery(update: Update, context: CallbackContext) -> State:
+    query = update.callback_query
+    query.answer()
+
+    pizzeria_courier = context.bot_data["pizzeria"]["courier"]
+    longitude, latitude = context.bot_data["coordinates"]
+
+    context.bot.send_location(
+        chat_id=pizzeria_courier,
+        longitude=longitude,
+        latitude=latitude,
+    )
 
 
 def run_bot(
@@ -307,7 +324,7 @@ def run_bot(
             State.HANDLE_DELIVERY: [
                 # MessageHandler(Filters.text, handle_customer_creation),
                 # MessageHandler(Filters.location, handle_customer_creation),
-                # CallbackQueryHandler(handle_cart, pattern="back"),
+                CallbackQueryHandler(handle_delivery, pattern="delivery"),
             ],
         },
         fallbacks=[],
