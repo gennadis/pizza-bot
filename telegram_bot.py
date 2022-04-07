@@ -29,7 +29,7 @@ class State(Enum):
     HANDLE_MENU = auto()
     HANDLE_DESCRIPTION = auto()
     HANDLE_CART = auto()
-    WAITING_EMAIL = auto()
+    HANDLE_WAITING = auto()
 
 
 def error_handler(update: Update, context: CallbackContext):
@@ -178,7 +178,7 @@ def handle_cart(update: Update, context: CallbackContext) -> State:
 
 
 @validate_token_expiration
-def handle_user_email(update: Update, context: CallbackContext) -> State:
+def handle_location(update: Update, context: CallbackContext) -> State:
     user_first_name = update.effective_user.first_name
     query = update.callback_query
     query.answer()
@@ -187,38 +187,47 @@ def handle_user_email(update: Update, context: CallbackContext) -> State:
         text=dedent(
             f"""
             {user_first_name},
-            оставьте адрес вашей электронной почты, наш менеджер свяжется с вами.
+            Отправьте ваш адрес текстом или геопозицию для доставки.
             """
         ),
         reply_markup=keyboards.get_email_markup(),
     )
 
-    return State.WAITING_EMAIL
+    return State.HANDLE_WAITING
 
 
 @validate_token_expiration
 def handle_customer_creation(update: Update, context: CallbackContext) -> State:
-    elastic_token = context.bot_data.get("elastic")
-
-    creation_status = elastic_api.create_customer(
-        credential_token=elastic_token,
-        user_id=update.effective_user.id,
-        email=update.message.text,
-    )["data"]
-
-    customer = elastic_api.get_customer(
-        credential_token=elastic_token, customer_id=creation_status["id"]
-    )["data"]
-
     update.effective_user.send_message(
         text=dedent(
             f"""
-            Номер вашего заказа - {customer["id"].split("-")[0]}.
-            Наш менеджер направит счет на почту {customer["email"]}.
+            {update.message.location.latitude}, {update.message.location.longitude}
             """
         ),
         reply_markup=keyboards.get_email_markup(),
     )
+
+    # elastic_token = context.bot_data.get("elastic")
+
+    # creation_status = elastic_api.create_customer(
+    #     credential_token=elastic_token,
+    #     user_id=update.effective_user.id,
+    #     email=update.message.text,
+    # )["data"]
+
+    # customer = elastic_api.get_customer(
+    #     credential_token=elastic_token, customer_id=creation_status["id"]
+    # )["data"]
+
+    # update.effective_user.send_message(
+    #     text=dedent(
+    #         f"""
+    #         Номер вашего заказа - {customer["id"].split("-")[0]}.
+    #         Наш менеджер направит счет на почту {customer["email"]}.
+    #         """
+    #     ),
+    #     reply_markup=keyboards.get_email_markup(),
+    # )
 
     return State.HANDLE_MENU
 
@@ -253,13 +262,12 @@ def run_bot(
             ],
             State.HANDLE_CART: [
                 CallbackQueryHandler(handle_menu, pattern="back"),
-                CallbackQueryHandler(handle_user_email, pattern="checkout"),
+                CallbackQueryHandler(handle_location, pattern="checkout"),
                 CallbackQueryHandler(handle_cart),
             ],
-            State.WAITING_EMAIL: [
-                MessageHandler(Filters.text, handle_customer_creation),
+            State.HANDLE_WAITING: [
+                MessageHandler(Filters.location, handle_customer_creation),
                 CallbackQueryHandler(handle_cart, pattern="back"),
-                CallbackQueryHandler(handle_user_email),
             ],
         },
         fallbacks=[],
