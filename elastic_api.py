@@ -360,3 +360,13 @@ def get_customer(credential_token: str, customer_id: str) -> dict:
     response.raise_for_status()
 
     return response.json()
+
+
+def get_all_entries(credential_token: str, slug: str) -> list[dict]:
+    headers = {"Authorization": f"Bearer {credential_token}"}
+    response = requests.get(
+        f"https://api.moltin.com/v2/flows/{slug}/entries", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
