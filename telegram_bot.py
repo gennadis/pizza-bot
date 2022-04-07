@@ -251,7 +251,7 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
                 воспользоваться бесплатной доставкой.
                 """
             ),
-            reply_markup=keyboards.get_email_markup(),
+            reply_markup=keyboards.get_delivery_markup(),
         )
     elif nearest_pizzeria["distance"] <= 5:
         update.effective_user.send_message(
@@ -265,7 +265,7 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
                 Предлагаем доплатить за доставку 100 рублей.
                 """
             ),
-            reply_markup=keyboards.get_email_markup(),
+            reply_markup=keyboards.get_delivery_markup(),
         )
     elif nearest_pizzeria["distance"] <= 20:
         update.effective_user.send_message(
@@ -279,7 +279,7 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
                 Предлагаем доплатить за доставку 300 рублей.
                 """
             ),
-            reply_markup=keyboards.get_email_markup(),
+            reply_markup=keyboards.get_delivery_markup(),
         )
     else:
         update.effective_user.send_message(
@@ -293,7 +293,7 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
                 Предлагаем самовывоз.
                 """
             ),
-            reply_markup=keyboards.get_email_markup(),
+            reply_markup=keyboards.get_delivery_markup(),
         )
 
     # elastic_token = context.bot_data.get("elastic")

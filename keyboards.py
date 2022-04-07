@@ -47,3 +47,13 @@ def get_email_markup() -> InlineKeyboardMarkup:
     email_markup = InlineKeyboardMarkup(keyboard)
 
     return email_markup
+
+
+def get_delivery_markup() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="Самовывоз", callback_data="pickup")],
+        [InlineKeyboardButton(text="Доставка", callback_data="delivery")],
+    ]
+    delivery_markup = InlineKeyboardMarkup(keyboard)
+
+    return delivery_markup
