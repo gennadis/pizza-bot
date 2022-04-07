@@ -31,6 +31,7 @@ class State(Enum):
     HANDLE_DESCRIPTION = auto()
     HANDLE_CART = auto()
     HANDLE_WAITING = auto()
+    HANDLE_DELIVERY = auto()
 
 
 def error_handler(update: Update, context: CallbackContext):
@@ -239,86 +240,28 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     )
 
     if nearest_pizzeria["distance"] <= 0.5:
-        update.effective_user.send_message(
-            text=dedent(
-                f"""
-                Ближайшая пиццерия:
-                {nearest_pizzeria['address']}
-                Расстояние:
-                {nearest_pizzeria['distance']} км.
-                
-                Предлагаем забрать пиццу самостоятельно,
-                воспользоваться бесплатной доставкой.
-                """
-            ),
-            reply_markup=keyboards.get_delivery_markup(),
-        )
+        delivery_price = "Предлагаем забрать пиццу самостоятельно или воспользоваться бесплатной доставкой."
     elif nearest_pizzeria["distance"] <= 5:
-        update.effective_user.send_message(
-            text=dedent(
-                f"""
-                Ближайшая пиццерия:
-                {nearest_pizzeria['address']}
-                Расстояние:
-                {nearest_pizzeria['distance']} км.
-                
-                Предлагаем доплатить за доставку 100 рублей.
-                """
-            ),
-            reply_markup=keyboards.get_delivery_markup(),
-        )
+        delivery_price = "Предлагаем доплатить за доставку 100 рублей."
     elif nearest_pizzeria["distance"] <= 20:
-        update.effective_user.send_message(
-            text=dedent(
-                f"""
-                Ближайшая пиццерия:
-                {nearest_pizzeria['address']}
-                Расстояние:
-                {nearest_pizzeria['distance']} км.
-                
-                Предлагаем доплатить за доставку 300 рублей.
-                """
-            ),
-            reply_markup=keyboards.get_delivery_markup(),
-        )
+        delivery_price = "Предлагаем доплатить за доставку 300 рублей."
     else:
-        update.effective_user.send_message(
-            text=dedent(
-                f"""
+        delivery_price = "Предлагаем самовывоз."
+
+    update.effective_user.send_message(
+        text=dedent(
+            f"""
                 Ближайшая пиццерия:
                 {nearest_pizzeria['address']}
-                Расстояние:
-                {nearest_pizzeria['distance']} км.
+                Расстояние: {nearest_pizzeria['distance']} км.
                 
-                Предлагаем самовывоз.
+                {delivery_price}
                 """
-            ),
-            reply_markup=keyboards.get_delivery_markup(),
-        )
+        ),
+        reply_markup=keyboards.get_delivery_markup(),
+    )
 
-    # elastic_token = context.bot_data.get("elastic")
-
-    # creation_status = elastic_api.create_customer(
-    #     credential_token=elastic_token,
-    #     user_id=update.effective_user.id,
-    #     email=update.message.text,
-    # )["data"]
-
-    # customer = elastic_api.get_customer(
-    #     credential_token=elastic_token, customer_id=creation_status["id"]
-    # )["data"]
-
-    # update.effective_user.send_message(
-    #     text=dedent(
-    #         f"""
-    #         Номер вашего заказа - {customer["id"].split("-")[0]}.
-    #         Наш менеджер направит счет на почту {customer["email"]}.
-    #         """
-    #     ),
-    #     reply_markup=keyboards.get_email_markup(),
-    # )
-
-    return State.HANDLE_MENU
+    return State.HANDLE_DELIVERY
 
 
 def run_bot(
@@ -360,6 +303,11 @@ def run_bot(
                 MessageHandler(Filters.text, handle_customer_creation),
                 MessageHandler(Filters.location, handle_customer_creation),
                 CallbackQueryHandler(handle_cart, pattern="back"),
+            ],
+            State.HANDLE_DELIVERY: [
+                # MessageHandler(Filters.text, handle_customer_creation),
+                # MessageHandler(Filters.location, handle_customer_creation),
+                # CallbackQueryHandler(handle_cart, pattern="back"),
             ],
         },
         fallbacks=[],
