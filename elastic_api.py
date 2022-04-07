@@ -1,7 +1,9 @@
+import os
 import time
 import urllib
 
 import requests
+from dotenv import load_dotenv
 
 
 def get_json_data(url: str) -> list[dict]:
@@ -366,6 +368,36 @@ def get_all_entries(credential_token: str, slug: str) -> list[dict]:
     headers = {"Authorization": f"Bearer {credential_token}"}
     response = requests.get(
         f"https://api.moltin.com/v2/flows/{slug}/entries", headers=headers
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def create_coordinates_entry(
+    credential_token: str,
+    coordinates_slug: str,
+    telegram_id: str,
+    longitude: str,
+    latitude: str,
+):
+    headers = {
+        "Authorization": f"Bearer {credential_token}",
+        "Content-Type": "application/json",
+    }
+    json_data = {
+        "data": {
+            "type": "entry",
+            "telegram_id": telegram_id,
+            "longitude": longitude,
+            "latitude": latitude,
+        }
+    }
+
+    response = requests.post(
+        f"https://api.moltin.com/v2/flows/{coordinates_slug}/entries",
+        headers=headers,
+        json=json_data,
     )
     response.raise_for_status()
 
