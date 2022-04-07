@@ -230,16 +230,63 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
         user_coordinates=user_coordinates, pizzerias=pizzerias
     )
 
-    update.effective_user.send_message(
-        text=dedent(
-            f"""
-            Ближайшая пиццерия:
-            {nearest_pizzeria['address']}
-            {nearest_pizzeria['distance']} км.
-            """
-        ),
-        reply_markup=keyboards.get_email_markup(),
-    )
+    if nearest_pizzeria["distance"] <= 0.5:
+        update.effective_user.send_message(
+            text=dedent(
+                f"""
+                Ближайшая пиццерия:
+                {nearest_pizzeria['address']}
+                Расстояние:
+                {nearest_pizzeria['distance']} км.
+                
+                Предлагаем забрать пиццу самостоятельно,
+                воспользоваться бесплатной доставкой.
+                """
+            ),
+            reply_markup=keyboards.get_email_markup(),
+        )
+    elif nearest_pizzeria["distance"] <= 5:
+        update.effective_user.send_message(
+            text=dedent(
+                f"""
+                Ближайшая пиццерия:
+                {nearest_pizzeria['address']}
+                Расстояние:
+                {nearest_pizzeria['distance']} км.
+                
+                Предлагаем доплатить за доставку 100 рублей.
+                """
+            ),
+            reply_markup=keyboards.get_email_markup(),
+        )
+    elif nearest_pizzeria["distance"] <= 20:
+        update.effective_user.send_message(
+            text=dedent(
+                f"""
+                Ближайшая пиццерия:
+                {nearest_pizzeria['address']}
+                Расстояние:
+                {nearest_pizzeria['distance']} км.
+                
+                Предлагаем доплатить за доставку 300 рублей.
+                """
+            ),
+            reply_markup=keyboards.get_email_markup(),
+        )
+    else:
+        update.effective_user.send_message(
+            text=dedent(
+                f"""
+                Ближайшая пиццерия:
+                {nearest_pizzeria['address']}
+                Расстояние:
+                {nearest_pizzeria['distance']} км.
+                
+                Предлагаем самовывоз.
+                """
+            ),
+            reply_markup=keyboards.get_email_markup(),
+        )
 
     # elastic_token = context.bot_data.get("elastic")
 
