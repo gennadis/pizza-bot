@@ -4,7 +4,7 @@ import time
 from enum import Enum, auto
 from textwrap import dedent
 
-
+import geopy
 import redis
 from dotenv import load_dotenv
 from telegram import Update
@@ -20,7 +20,7 @@ from telegram.ext import (
 
 import elastic_api
 import keyboards
-import yandex_geocode_api
+import geocode
 
 
 logger = logging.getLogger(__file__)
@@ -199,20 +199,17 @@ def handle_location(update: Update, context: CallbackContext) -> State:
 
 @validate_token_expiration
 def handle_customer_creation(update: Update, context: CallbackContext) -> State:
+    elastic_token = context.bot_data.get("elastic")
 
     if update.message.location:
-        update.effective_user.send_message(
-            text=dedent(
-                f"""
-                {update.message.location.longitude, update.message.location.latitude}
-                """
-            ),
-            reply_markup=keyboards.get_email_markup(),
+        user_coordinates = (
+            update.message.location.longitude,
+            update.message.location.latitude,
         )
     else:
         geocode_token = context.bot_data.get("geocode")
         try:
-            coordinates = yandex_geocode_api.get_coordinates(
+            user_coordinates = geocode.get_coordinates(
                 yandex_token=geocode_token, address=update.message.text
             )
         except IndexError:
@@ -226,14 +223,21 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
             )
             return State.HANDLE_WAITING
 
-        update.effective_user.send_message(
-            text=dedent(
-                f"""
-                {coordinates}
-                """
-            ),
-            reply_markup=keyboards.get_email_markup(),
-        )
+    pizzerias = elastic_api.get_all_entries(
+        credential_token=elastic_token, slug="pizzeria"
+    )["data"]
+    nearest_pizzeria = geocode.get_nearest_pizzeria(
+        user_coordinates=user_coordinates, pizzerias=pizzerias
+    )
+
+    update.effective_user.send_message(
+        text=dedent(
+            f"""
+            Ближайшая пиццерия: {nearest_pizzeria['address']}
+            """
+        ),
+        reply_markup=keyboards.get_email_markup(),
+    )
 
     # elastic_token = context.bot_data.get("elastic")
 
