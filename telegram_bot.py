@@ -20,6 +20,7 @@ from telegram.ext import (
 
 import elastic_api
 import keyboards
+import yandex_geocode_api
 
 
 logger = logging.getLogger(__file__)
@@ -198,14 +199,41 @@ def handle_location(update: Update, context: CallbackContext) -> State:
 
 @validate_token_expiration
 def handle_customer_creation(update: Update, context: CallbackContext) -> State:
-    update.effective_user.send_message(
-        text=dedent(
-            f"""
-            {update.message.location.latitude}, {update.message.location.longitude}
-            """
-        ),
-        reply_markup=keyboards.get_email_markup(),
-    )
+
+    if update.message.location:
+        update.effective_user.send_message(
+            text=dedent(
+                f"""
+                {update.message.location.longitude, update.message.location.latitude}
+                """
+            ),
+            reply_markup=keyboards.get_email_markup(),
+        )
+    else:
+        geocode_token = context.bot_data.get("geocode")
+        try:
+            coordinates = yandex_geocode_api.get_coordinates(
+                yandex_token=geocode_token, address=update.message.text
+            )
+        except IndexError:
+            update.effective_user.send_message(
+                text=dedent(
+                    f"""
+                    Не нашел координаты.
+                    """
+                ),
+                reply_markup=keyboards.get_email_markup(),
+            )
+            return State.HANDLE_WAITING
+
+        update.effective_user.send_message(
+            text=dedent(
+                f"""
+                {coordinates}
+                """
+            ),
+            reply_markup=keyboards.get_email_markup(),
+        )
 
     # elastic_token = context.bot_data.get("elastic")
 
@@ -238,6 +266,7 @@ def run_bot(
     elastic_token: str,
     elastic_client_id: str,
     elastic_client_secret: str,
+    geocode_token: str,
 ):
     updater = Updater(token=telegram_token, use_context=True)
     dispatcher = updater.dispatcher
@@ -246,6 +275,7 @@ def run_bot(
     dispatcher.bot_data["token_expires"] = elastic_token["expires"]
     dispatcher.bot_data["elastic_client_id"] = elastic_client_id
     dispatcher.bot_data["elastic_client_secret"] = elastic_client_secret
+    dispatcher.bot_data["geocode"] = geocode_token
 
     conversation = ConversationHandler(
         entry_points=[CommandHandler("start", handle_menu)],
@@ -266,6 +296,7 @@ def run_bot(
                 CallbackQueryHandler(handle_cart),
             ],
             State.HANDLE_WAITING: [
+                MessageHandler(Filters.text, handle_customer_creation),
                 MessageHandler(Filters.location, handle_customer_creation),
                 CallbackQueryHandler(handle_cart, pattern="back"),
             ],
@@ -300,12 +331,15 @@ def main():
         password=os.getenv("REDIS_PASSWORD"),
     )
 
+    yandex_geocode_token = os.getenv("YANDEX_GEOCODE_TOKEN")
+
     run_bot(
         telegram_token=telegram_token,
         redis_connection=redis_connection,
         elastic_token=elastic_token,
         elastic_client_id=elastic_client_id,
         elastic_client_secret=elastic_client_secret,
+        geocode_token=yandex_geocode_token,
     )
 
 
