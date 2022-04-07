@@ -266,7 +266,6 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
     return State.HANDLE_DELIVERY
 
 
-@validate_token_expiration
 def handle_delivery(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
     query.answer()
@@ -278,6 +277,25 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
         chat_id=pizzeria_courier,
         longitude=longitude,
         latitude=latitude,
+    )
+
+
+def handle_pickup(update: Update, context: CallbackContext) -> State:
+    query = update.callback_query
+    query.answer()
+    nearest_pizzeria = context.bot_data["pizzeria"]
+
+    update.effective_user.send_message(
+        text=dedent(
+            f"""
+                Ближайшая пиццерия:
+                {nearest_pizzeria['address']}
+                Расстояние: {nearest_pizzeria['distance']} км.
+                Самовывоз - бесплатно.
+
+                Спасибо за заказ!
+                """
+        ),
     )
 
 
@@ -325,6 +343,7 @@ def run_bot(
                 # MessageHandler(Filters.text, handle_customer_creation),
                 # MessageHandler(Filters.location, handle_customer_creation),
                 CallbackQueryHandler(handle_delivery, pattern="delivery"),
+                CallbackQueryHandler(handle_pickup, pattern="pickup"),
             ],
         },
         fallbacks=[],
