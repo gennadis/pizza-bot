@@ -279,6 +279,25 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
         latitude=latitude,
     )
 
+    context.job_queue.run_once(
+        callback=remind_delivery_status,
+        when=10,  # seconds
+        context=update.effective_user.id,
+    )
+
+
+def remind_delivery_status(context: CallbackContext):
+    job = context.job
+    context.bot.send_message(
+        chat_id=job.context,
+        text=dedent(
+            f"""
+            Приятного аппетита! *место для рекламы*
+            *сообщение что делать если пицца не пришла*
+            """
+        ),
+    )
+
 
 def handle_pickup(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
@@ -342,7 +361,9 @@ def run_bot(
             State.HANDLE_DELIVERY: [
                 # MessageHandler(Filters.text, handle_customer_creation),
                 # MessageHandler(Filters.location, handle_customer_creation),
-                CallbackQueryHandler(handle_delivery, pattern="delivery"),
+                CallbackQueryHandler(
+                    handle_delivery, pattern="delivery", pass_job_queue=True
+                ),
                 CallbackQueryHandler(handle_pickup, pattern="pickup"),
             ],
         },
