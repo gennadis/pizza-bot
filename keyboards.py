@@ -57,3 +57,13 @@ def get_delivery_markup() -> InlineKeyboardMarkup:
     delivery_markup = InlineKeyboardMarkup(keyboard)
 
     return delivery_markup
+
+
+def get_payment_markup() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text="Оплатить", callback_data="pay")],
+        [InlineKeyboardButton(text="В меню", callback_data="back")],
+    ]
+    payment_markup = InlineKeyboardMarkup(keyboard)
+
+    return payment_markup
