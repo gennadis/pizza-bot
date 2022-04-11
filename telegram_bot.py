@@ -82,6 +82,7 @@ def handle_menu(update: Update, context: CallbackContext) -> State:
         ),
         reply_markup=products_markup,
     )
+    update.effective_message.delete()
 
     return State.HANDLE_DESCRIPTION
 
@@ -197,6 +198,7 @@ def handle_location(update: Update, context: CallbackContext) -> State:
         ),
         reply_markup=keyboards.get_email_markup(),
     )
+    update.effective_message.delete()
 
     return State.HANDLE_WAITING
 
@@ -224,6 +226,8 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
                 ),
                 reply_markup=keyboards.get_email_markup(),
             )
+            update.effective_message.delete()
+
             return State.HANDLE_WAITING
 
     pizzerias = elastic_api.get_all_entries(
@@ -265,6 +269,7 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
         ),
         reply_markup=keyboards.get_delivery_markup(),
     )
+    update.effective_message.delete()
 
     return State.HANDLE_DELIVERY
 
@@ -280,6 +285,7 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
         text="Оплатите заказ",
         reply_markup=keyboards.get_payment_markup(),
     )
+    update.effective_message.delete()
 
     # context.bot.send_location(
     #     chat_id=pizzeria_courier,
@@ -329,6 +335,8 @@ def handle_pickup(update: Update, context: CallbackContext) -> State:
         ),
         reply_markup=keyboards.get_payment_markup(),
     )
+    update.effective_message.delete()
+
     return State.HANDLE_DELIVERY
 
 
