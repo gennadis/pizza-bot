@@ -271,49 +271,6 @@ def get_cart_items(credential_token: str, cart_id: str) -> dict:
     return response.json()
 
 
-def get_product_summary_text(
-    name: str, price: int, quantity: int, description: str
-) -> str:
-    product_summary_text = f"""
-        Название: {name}
-        Описание: {description}
-
-        Стоимость: {price} ₽ за шт.
-        Количество: {quantity} шт.
-        Подитог: {price * quantity} ₽
-        -----------------
-        """
-    formatted_product_summary_text = "\n".join(
-        line.strip() for line in product_summary_text.splitlines()
-    )
-    return formatted_product_summary_text
-
-
-def get_cart_summary_text(cart_items: dict) -> str:
-    total_price = 0
-    products = []
-
-    for product in cart_items:
-        name = product["name"]
-        price = product["value"]["amount"]
-        quantity = product["quantity"]
-        description = product["description"]
-
-        total_price += price * quantity
-
-        product_summary: str = get_product_summary_text(
-            name, price, quantity, description
-        )
-        products.append(product_summary)
-
-    message_total_price = f"ИТОГО: {total_price} ₽"
-
-    message_products_lines = "\n".join(products)
-    cart_summary = f"{message_total_price}\n{message_products_lines}"
-
-    return cart_summary
-
-
 def get_product(credential_token: str, product_id: str) -> dict:
     headers = {"Authorization": f"Bearer {credential_token}"}
     response = requests.get(

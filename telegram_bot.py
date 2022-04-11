@@ -109,7 +109,7 @@ def handle_description(update: Update, context: CallbackContext) -> State:
 
 
 @validate_token_expiration
-def update_cart(update: Update, context: CallbackContext) -> State:
+def handle_add_to_cart(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
     query.answer("Товар добавлен в корзину")
 
@@ -125,28 +125,33 @@ def update_cart(update: Update, context: CallbackContext) -> State:
 
 @validate_token_expiration
 def handle_cart(update: Update, context: CallbackContext) -> State:
-    query = update.callback_query
-
-    elastic_token = context.bot_data.get("elastic")
-    cart_items = elastic_api.get_cart_items(
-        credential_token=elastic_token,
+    cart_summary_text, cart_markup = keyboards.get_cart_markup(
+        elastic_token=context.bot_data.get("elastic"),
         cart_id=update.effective_user.id,
     )
 
-    product_id = query.data
-    if product_id in [product["id"] for product in cart_items["data"]]:
-        query.answer("Товар удален из корзины")
-        elastic_api.delete_product_from_cart(
-            credential_token=elastic_token,
-            cart_id=update.effective_user.id,
-            product_id=query.data,
-        )
-
     update.effective_user.send_message(
-        text=elastic_api.get_cart_summary_text(cart_items=cart_items["data"]),
-        reply_markup=keyboards.get_cart_markup(cart_items=cart_items),
+        text=dedent(cart_summary_text),
+        reply_markup=cart_markup,
     )
     update.effective_message.delete()
+
+    return State.HANDLE_CART
+
+
+@validate_token_expiration
+def remove_from_cart(update: Update, context: CallbackContext) -> State:
+    query = update.callback_query
+
+    query.answer("Товар удален из корзины")
+    product_id = query.data
+
+    elastic_api.delete_product_from_cart(
+        credential_token=context.bot_data.get("elastic"),
+        cart_id=update.effective_user.id,
+        product_id=product_id,
+    )
+    handle_cart(update, context)
 
     return State.HANDLE_CART
 
@@ -365,12 +370,13 @@ def run_bot(
             State.HANDLE_DESCRIPTION: [
                 CallbackQueryHandler(handle_menu, pattern="back"),
                 CallbackQueryHandler(handle_cart, pattern="cart"),
-                CallbackQueryHandler(update_cart, pattern="^[0-9]+$"),
+                CallbackQueryHandler(handle_add_to_cart, pattern="^[0-9]+$"),
                 CallbackQueryHandler(handle_description),
             ],
             State.HANDLE_CART: [
                 CallbackQueryHandler(handle_menu, pattern="back"),
                 CallbackQueryHandler(handle_location, pattern="checkout"),
+                CallbackQueryHandler(remove_from_cart, pattern="[0-9a-zA-Z_-]+"),
                 CallbackQueryHandler(handle_cart),
             ],
             State.HANDLE_WAITING: [

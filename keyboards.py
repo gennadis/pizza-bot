@@ -1,3 +1,4 @@
+from textwrap import dedent
 import elastic_api
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -72,7 +73,35 @@ def get_description_markup(
     return picture_href, product_description, description_markup
 
 
-def get_cart_markup(cart_items: dict) -> InlineKeyboardMarkup:
+def get_cart_markup(elastic_token: str, cart_id: str) -> InlineKeyboardMarkup:
+    cart_items = elastic_api.get_cart_items(
+        credential_token=elastic_token,
+        cart_id=cart_id,
+    )
+
+    total_price = 0
+    cart_summary_lines = []
+
+    for product in cart_items["data"]:
+        price = product["value"]["amount"]
+        quantity = product["quantity"]
+        total_price += price * quantity
+
+        product_summary_text = dedent(
+            f"""
+        Название: {product["name"]}
+        Описание: {product["description"]}
+        Стоимость: {price} ₽ за шт.
+        Количество: {quantity} шт.
+        Подитог: {price * quantity} ₽
+        -----------------"""
+        )
+
+        cart_summary_lines.append(product_summary_text)
+
+    cart_summary_lines_text = "\n".join(cart_summary_lines)
+    cart_summary_text = f"ИТОГО: {total_price} ₽\n{cart_summary_lines_text}"
+
     keyboard = [
         [InlineKeyboardButton(f"Убрать {product['name']}", callback_data=product["id"])]
         for product in cart_items["data"]
@@ -81,7 +110,7 @@ def get_cart_markup(cart_items: dict) -> InlineKeyboardMarkup:
     keyboard.append([InlineKeyboardButton(text="В меню", callback_data="back")])
     cart_markup = InlineKeyboardMarkup(keyboard)
 
-    return cart_markup
+    return cart_summary_text, cart_markup
 
 
 def get_email_markup() -> InlineKeyboardMarkup:
