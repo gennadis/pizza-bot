@@ -113,9 +113,8 @@ def update_cart(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
     query.answer("Товар добавлен в корзину")
 
-    elastic_token = context.bot_data.get("elastic")
     elastic_api.add_product_to_cart(
-        credential_token=elastic_token,
+        credential_token=context.bot_data.get("elastic"),
         product_id=context.bot_data["product_id"],
         quantity=int(query.data),
         cart_id=update.effective_user.id,
