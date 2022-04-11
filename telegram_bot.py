@@ -4,10 +4,10 @@ import time
 from enum import Enum, auto
 from textwrap import dedent
 
-import geopy
+
 import redis
 from dotenv import load_dotenv
-from telegram import PreCheckoutQuery, Update, LabeledPrice, ShippingOption
+from telegram import Update, LabeledPrice, 
 
 from telegram.ext import (
     CallbackContext,
