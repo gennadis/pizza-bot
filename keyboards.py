@@ -6,7 +6,9 @@ import elastic_api
 import geocode
 
 
-def get_menu_markup(elastic_token: str, user_first_name: str) -> InlineKeyboardMarkup:
+def get_menu_markup(
+    elastic_token: str, user_first_name: str
+) -> tuple[str, InlineKeyboardMarkup]:
     welcome_text = f"""
             Привет, {user_first_name}! 
             Добро пожаловать в пиццерию "Pizza time"!
@@ -30,20 +32,20 @@ def get_product_in_cart_count(elastic_token: str, product_id: str, cart_id: str)
     cart_items = elastic_api.get_cart_items(
         credential_token=elastic_token, cart_id=cart_id
     )
-    product_in_cart = sum(
+    product_in_cart_count = sum(
         [
-            product["quantity"]  # TODO: replace by '1'
+            product["quantity"]
             for product in cart_items["data"]
             if product_id == product["product_id"]
         ]
     )
 
-    return product_in_cart
+    return product_in_cart_count
 
 
 def get_description_markup(
     elastic_token: str, product_id: str, user_id: str
-) -> InlineKeyboardMarkup:
+) -> tuple[str, str, InlineKeyboardMarkup]:
 
     product = elastic_api.get_product(
         credential_token=elastic_token, product_id=product_id
@@ -76,7 +78,9 @@ def get_description_markup(
     return picture_href, product_description, description_markup
 
 
-def get_cart_markup(elastic_token: str, cart_id: str) -> InlineKeyboardMarkup:
+def get_cart_markup(
+    elastic_token: str, cart_id: str
+) -> tuple[str, InlineKeyboardMarkup]:
     cart_items = elastic_api.get_cart_items(
         credential_token=elastic_token,
         cart_id=cart_id,
@@ -86,17 +90,15 @@ def get_cart_markup(elastic_token: str, cart_id: str) -> InlineKeyboardMarkup:
     cart_summary_lines = []
 
     for product in cart_items["data"]:
-        price = product["value"]["amount"]
-        quantity = product["quantity"]
-        total_price += price * quantity
+        total_price += product["value"]["amount"]
 
         product_summary_text = dedent(
             f"""
         Название: {product["name"]}
         Описание: {product["description"]}
-        Стоимость: {price} ₽ за шт.
-        Количество: {quantity} шт.
-        Подитог: {price * quantity} ₽
+        Стоимость: {product["unit_price"]["amount"]} ₽ за шт.
+        Количество: {product["quantity"]} шт.
+        Подитог: {product["value"]["amount"]} ₽
         -----------------"""
         )
 
@@ -116,7 +118,7 @@ def get_cart_markup(elastic_token: str, cart_id: str) -> InlineKeyboardMarkup:
     return cart_summary_text, cart_markup
 
 
-def get_location_markup(user_first_name: str) -> InlineKeyboardMarkup:
+def get_location_markup(user_first_name: str) -> tuple[str, InlineKeyboardMarkup]:
     location_text = f"""
             {user_first_name},
             Отправьте ваш адрес текстом или геопозицию для доставки.
@@ -132,7 +134,7 @@ def get_location_markup(user_first_name: str) -> InlineKeyboardMarkup:
 
 def get_delivery_markup(
     elastic_token: str, user_coordinates: tuple[str, str], user_id: str
-) -> InlineKeyboardMarkup:
+) -> tuple[dict, str, InlineKeyboardMarkup]:
     longitude, latitude = user_coordinates
     elastic_api.create_coordinates_entry(
         credential_token=elastic_token,
@@ -173,7 +175,7 @@ def get_delivery_markup(
     return nearest_pizzeria, delivery_details, delivery_markup
 
 
-def get_pickup_markup(nearest_pizzeria: dict) -> InlineKeyboardMarkup:
+def get_pickup_markup(nearest_pizzeria: dict) -> tuple[str, InlineKeyboardMarkup]:
     pickup_text = f"""
                 Ближайшая пиццерия:
                 {nearest_pizzeria['address']}
