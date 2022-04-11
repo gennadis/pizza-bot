@@ -1,5 +1,6 @@
 from textwrap import dedent
 import elastic_api
+import geocode
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
@@ -127,14 +128,47 @@ def get_location_markup(user_first_name: str) -> InlineKeyboardMarkup:
     return location_text, location_markup
 
 
-def get_delivery_markup() -> InlineKeyboardMarkup:
+def get_delivery_markup(
+    elastic_token: str, user_coordinates: tuple[str, str], user_id: str
+) -> InlineKeyboardMarkup:
+    longitude, latitude = user_coordinates
+    elastic_api.create_coordinates_entry(
+        credential_token=elastic_token,
+        coordinates_slug="coordinates",
+        telegram_id=user_id,
+        longitude=longitude,
+        latitude=latitude,
+    )
+
+    all_pizzerias = elastic_api.get_all_entries(
+        credential_token=elastic_token, slug="pizzeria"
+    )
+    nearest_pizzeria = geocode.get_nearest_pizzeria(
+        user_coordinates=user_coordinates, pizzerias=all_pizzerias["data"]
+    )
+
+    if nearest_pizzeria["distance"] <= 0.5:
+        delivery_options = "Предлагаем забрать пиццу самостоятельно или воспользоваться бесплатной доставкой."
+    elif nearest_pizzeria["distance"] <= 5:
+        delivery_options = "Предлагаем доплатить за доставку 100 рублей."
+    elif nearest_pizzeria["distance"] <= 20:
+        delivery_options = "Предлагаем доплатить за доставку 300 рублей."
+    else:
+        delivery_options = "Предлагаем самовывоз."
+
+    delivery_details = f"""
+    Ближайшая пиццерия:
+    {nearest_pizzeria['address']}
+    Расстояние: {nearest_pizzeria['distance']} км.
+    {delivery_options}"""
+
     keyboard = [
         [InlineKeyboardButton(text="Самовывоз", callback_data="pickup")],
         [InlineKeyboardButton(text="Доставка", callback_data="delivery")],
     ]
     delivery_markup = InlineKeyboardMarkup(keyboard)
 
-    return delivery_markup
+    return nearest_pizzeria, delivery_details, delivery_markup
 
 
 def get_payment_markup() -> InlineKeyboardMarkup:

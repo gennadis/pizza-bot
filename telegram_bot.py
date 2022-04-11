@@ -171,77 +171,58 @@ def handle_location(update: Update, context: CallbackContext) -> State:
 
 
 @validate_token_expiration
-def handle_delivery_creation(update: Update, context: CallbackContext) -> State:
-    elastic_token = context.bot_data.get("elastic")
-
+def handle_delivery(update: Update, context: CallbackContext) -> State:
+    # address was sent in location with coordinates format
     if update.message.location:
-        longitude = update.message.location.longitude
-        latitude = update.message.location.latitude
-        user_coordinates = (longitude, latitude)
+        user_coordinates = (
+            update.message.location.longitude,
+            update.message.location.latitude,
+        )
+
+    # address was sent in text format
     else:
-        geocode_token = context.bot_data.get("geocode")
         try:
             user_coordinates = geocode.get_coordinates(
-                yandex_token=geocode_token, address=update.message.text
+                yandex_token=context.bot_data.get("geocode"),
+                address=update.message.text,
             )
+
+        # address wasn't recognized
         except IndexError:
-            update.effective_user.send_message(
-                text=dedent(
-                    f"""
-                    Не нашел координаты.
-                    """
-                ),
-                reply_markup=keyboards.get_email_markup(),
+            location_text, location_markup = keyboards.get_location_markup(
+                user_first_name=update.effective_user.first_name
             )
+            update.effective_user.send_message("Адрес не распознан. Повторите попытку.")
             update.effective_message.delete()
+            update.effective_user.send_message(
+                text=dedent(location_text),
+                reply_markup=location_markup,
+            )
 
             return State.HANDLE_LOCATION
 
-    pizzerias = elastic_api.get_all_entries(
-        credential_token=elastic_token, slug="pizzeria"
-    )["data"]
-    nearest_pizzeria = geocode.get_nearest_pizzeria(
-        user_coordinates=user_coordinates, pizzerias=pizzerias
+    (
+        nearest_pizzeria,
+        delivery_details,
+        delivery_markup,
+    ) = keyboards.get_delivery_markup(
+        elastic_token=context.bot_data.get("elastic"),
+        user_coordinates=user_coordinates,
+        user_id=update.effective_user.id,
     )
     context.bot_data["pizzeria"] = nearest_pizzeria
     context.bot_data["coordinates"] = user_coordinates
 
-    longitude, latitude = user_coordinates
-    coordinates_entry = elastic_api.create_coordinates_entry(
-        credential_token=elastic_token,
-        coordinates_slug="coordinates",
-        telegram_id=update.effective_user.id,
-        longitude=longitude,
-        latitude=latitude,
-    )
-
-    if nearest_pizzeria["distance"] <= 0.5:
-        delivery_price = "Предлагаем забрать пиццу самостоятельно или воспользоваться бесплатной доставкой."
-    elif nearest_pizzeria["distance"] <= 5:
-        delivery_price = "Предлагаем доплатить за доставку 100 рублей."
-    elif nearest_pizzeria["distance"] <= 20:
-        delivery_price = "Предлагаем доплатить за доставку 300 рублей."
-    else:
-        delivery_price = "Предлагаем самовывоз."
-
     update.effective_user.send_message(
-        text=dedent(
-            f"""
-                Ближайшая пиццерия:
-                {nearest_pizzeria['address']}
-                Расстояние: {nearest_pizzeria['distance']} км.
-                
-                {delivery_price}
-                """
-        ),
-        reply_markup=keyboards.get_delivery_markup(),
+        text=dedent(delivery_details),
+        reply_markup=delivery_markup,
     )
     update.effective_message.delete()
 
     return State.HANDLE_DELIVERY
 
 
-def handle_delivery(update: Update, context: CallbackContext) -> State:
+def handle_courier_notification(update: Update, context: CallbackContext) -> State:
     query = update.callback_query
     query.answer()
 
@@ -374,15 +355,13 @@ def run_bot(
                 CallbackQueryHandler(handle_cart),
             ],
             State.HANDLE_LOCATION: [
-                MessageHandler(Filters.text, handle_delivery_creation),
-                MessageHandler(Filters.location, handle_delivery_creation),
-                CallbackQueryHandler(handle_cart, pattern="back"),
+                MessageHandler(Filters.text, handle_delivery),
+                MessageHandler(Filters.location, handle_delivery),
+                CallbackQueryHandler(handle_menu, pattern="back"),
             ],
             State.HANDLE_DELIVERY: [
-                # MessageHandler(Filters.text, handle_customer_creation),
-                # MessageHandler(Filters.location, handle_customer_creation),
                 CallbackQueryHandler(
-                    handle_delivery, pattern="delivery", pass_job_queue=True
+                    handle_courier_notification, pattern="delivery", pass_job_queue=True
                 ),
                 CallbackQueryHandler(handle_pickup, pattern="pickup"),
                 CallbackQueryHandler(handle_payment, pattern="pay"),
