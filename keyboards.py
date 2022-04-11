@@ -1,9 +1,9 @@
-from elastic_api import get_all_products
+import elastic_api
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def get_menu_markup(elastic_token: str) -> InlineKeyboardMarkup:
-    products = get_all_products(credential_token=elastic_token)["data"]
+    products = elastic_api.get_all_products(credential_token=elastic_token)["data"]
     product_names_and_ids = [(product["name"], product["id"]) for product in products]
 
     keyboard = [
@@ -17,7 +17,46 @@ def get_menu_markup(elastic_token: str) -> InlineKeyboardMarkup:
     return menu_markup
 
 
-def get_description_markup() -> InlineKeyboardMarkup:
+def get_product_in_cart_count(elastic_token: str, product_id: str, cart_id: str) -> int:
+    cart_items = elastic_api.get_cart_items(
+        credential_token=elastic_token, cart_id=cart_id
+    )
+    product_in_cart = sum(
+        [
+            product["quantity"]  # TODO: replace by '1'
+            for product in cart_items["data"]
+            if product_id == product["product_id"]
+        ]
+    )
+
+    return product_in_cart
+
+
+def get_description_markup(
+    elastic_token: str, product_id: str, user_id: str
+) -> InlineKeyboardMarkup:
+
+    product = elastic_api.get_product(
+        credential_token=elastic_token, product_id=product_id
+    )
+    product_details = product["data"]
+    product_in_cart_count = get_product_in_cart_count(
+        elastic_token=elastic_token, product_id=product_id, cart_id=user_id
+    )
+
+    picture_href = elastic_api.get_file_href(
+        credential_token=elastic_token,
+        file_id=product["data"]["relationships"]["main_image"]["data"]["id"],
+    )
+
+    product_description = f"""
+        Название: {product_details['name']}
+        Стоимость: {product_details['meta']['display_price']['with_tax']['formatted']} за шт.
+        Описание: {product_details['description']}
+        
+        В корзине: {product_in_cart_count} шт.
+        """
+
     keyboard = [
         [InlineKeyboardButton("Добавить в корзину", callback_data=1)],
         [InlineKeyboardButton(text="В меню", callback_data="back")],
@@ -25,7 +64,7 @@ def get_description_markup() -> InlineKeyboardMarkup:
     ]
     description_markup = InlineKeyboardMarkup(keyboard)
 
-    return description_markup
+    return picture_href, product_description, description_markup
 
 
 def get_cart_markup(cart_items: dict) -> InlineKeyboardMarkup:

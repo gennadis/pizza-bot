@@ -88,50 +88,24 @@ def handle_menu(update: Update, context: CallbackContext) -> State:
 
 @validate_token_expiration
 def handle_description(update: Update, context: CallbackContext) -> State:
-    query = update.callback_query
-    query.answer()
-
     elastic_token = context.bot_data.get("elastic")
-    product = elastic_api.get_product(
-        credential_token=elastic_token, product_id=query.data
-    )
-    product_id = product["data"]["id"]
+    query = update.callback_query
+    context.bot_data["product_id"] = query.data
 
-    cart_items = elastic_api.get_cart_items(
-        credential_token=elastic_token,
-        cart_id=update.effective_user.id,
-    )
-    products_in_cart = sum(
-        [
-            product["quantity"]
-            for product in cart_items["data"]
-            if product_id == product["product_id"]
-        ]
-    )
-
-    product_details = product["data"]
-    product_description = f"""
-        Название: {product_details['name']}
-        Стоимость: {product_details['meta']['display_price']['with_tax']['formatted']} за шт.
-        Описание: {product_details['description']}
-        
-        В корзине: {products_in_cart} шт.
-        """
-    formatted_product_description = "\n".join(
-        line.strip() for line in product_description.splitlines()
-    )
-
-    context.bot_data["product_id"] = product["data"]["id"]
-
-    picture_id = product["data"]["relationships"]["main_image"]["data"]["id"]
-    picture_href = elastic_api.get_file_href(
-        credential_token=elastic_token, file_id=picture_id
+    (
+        picture_href,
+        product_description,
+        description_markup,
+    ) = keyboards.get_description_markup(
+        elastic_token=elastic_token,
+        product_id=query.data,
+        user_id=update.effective_user.id,
     )
 
     update.effective_user.send_photo(
         photo=picture_href,
-        caption=formatted_product_description,
-        reply_markup=keyboards.get_description_markup(),
+        caption=dedent(product_description),
+        reply_markup=description_markup,
     )
     update.effective_message.delete()
 
