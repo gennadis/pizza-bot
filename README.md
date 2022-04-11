@@ -1,4 +1,4 @@
-# Fish Store Telegram Bot
+# Pizza Store Telegram Bot
 
 This project is a simple telegram `pizza store bot`.
 Powered by [Elasticpath Commerce Cloud CMS](https://www.elasticpath.com/elastic-path-commerce-cloud)
