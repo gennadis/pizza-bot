@@ -69,16 +69,13 @@ def validate_token_expiration(function_to_decorate):
 
 @validate_token_expiration
 def handle_menu(update: Update, context: CallbackContext) -> State:
-    elastic_token = context.bot_data.get("elastic")
-    menu_markup = keyboards.get_menu_markup(elastic_token)
+    welcome_text, menu_markup = keyboards.get_menu_markup(
+        elastic_token=context.bot_data.get("elastic"),
+        user_first_name=update.effective_user.first_name,
+    )
 
     update.effective_message.reply_text(
-        text=dedent(
-            f"""
-            Привет, {update.effective_user.first_name}! 
-            Добро пожаловать в пиццерию "Pizza time"!
-            """
-        ),
+        text=dedent(welcome_text),
         reply_markup=menu_markup,
     )
     update.effective_message.delete()

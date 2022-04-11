@@ -2,7 +2,12 @@ import elastic_api
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def get_menu_markup(elastic_token: str) -> InlineKeyboardMarkup:
+def get_menu_markup(elastic_token: str, user_first_name: str) -> InlineKeyboardMarkup:
+    welcome_text = f"""
+            Привет, {user_first_name}! 
+            Добро пожаловать в пиццерию "Pizza time"!
+            """
+
     products = elastic_api.get_all_products(credential_token=elastic_token)["data"]
     product_names_and_ids = [(product["name"], product["id"]) for product in products]
 
@@ -14,7 +19,7 @@ def get_menu_markup(elastic_token: str) -> InlineKeyboardMarkup:
 
     menu_markup = InlineKeyboardMarkup(keyboard)
 
-    return menu_markup
+    return welcome_text, menu_markup
 
 
 def get_product_in_cart_count(elastic_token: str, product_id: str, cart_id: str) -> int:
