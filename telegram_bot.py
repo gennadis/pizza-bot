@@ -32,7 +32,7 @@ class State(Enum):
     HANDLE_MENU = auto()
     HANDLE_DESCRIPTION = auto()
     HANDLE_CART = auto()
-    HANDLE_WAITING = auto()
+    HANDLE_LOCATION = auto()
     HANDLE_DELIVERY = auto()
     HANDLE_PAYMENT = auto()
 
@@ -124,6 +124,21 @@ def handle_add_to_cart(update: Update, context: CallbackContext) -> State:
 
 
 @validate_token_expiration
+def handle_delete_from_cart(update: Update, context: CallbackContext) -> State:
+    query = update.callback_query
+    query.answer("Товар удален из корзины")
+
+    elastic_api.delete_product_from_cart(
+        credential_token=context.bot_data.get("elastic"),
+        cart_id=update.effective_user.id,
+        product_id=query.data,
+    )
+    handle_cart(update, context)
+
+    return State.HANDLE_CART
+
+
+@validate_token_expiration
 def handle_cart(update: Update, context: CallbackContext) -> State:
     cart_summary_text, cart_markup = keyboards.get_cart_markup(
         elastic_token=context.bot_data.get("elastic"),
@@ -140,44 +155,23 @@ def handle_cart(update: Update, context: CallbackContext) -> State:
 
 
 @validate_token_expiration
-def remove_from_cart(update: Update, context: CallbackContext) -> State:
-    query = update.callback_query
-
-    query.answer("Товар удален из корзины")
-    product_id = query.data
-
-    elastic_api.delete_product_from_cart(
-        credential_token=context.bot_data.get("elastic"),
-        cart_id=update.effective_user.id,
-        product_id=product_id,
-    )
-    handle_cart(update, context)
-
-    return State.HANDLE_CART
-
-
-@validate_token_expiration
 def handle_location(update: Update, context: CallbackContext) -> State:
-    user_first_name = update.effective_user.first_name
     query = update.callback_query
-    query.answer()
+    location_text, location_markup = keyboards.get_location_markup(
+        user_first_name=update.effective_user.first_name
+    )
 
     update.effective_user.send_message(
-        text=dedent(
-            f"""
-            {user_first_name},
-            Отправьте ваш адрес текстом или геопозицию для доставки.
-            """
-        ),
-        reply_markup=keyboards.get_email_markup(),
+        text=dedent(location_text),
+        reply_markup=location_markup,
     )
     update.effective_message.delete()
 
-    return State.HANDLE_WAITING
+    return State.HANDLE_LOCATION
 
 
 @validate_token_expiration
-def handle_customer_creation(update: Update, context: CallbackContext) -> State:
+def handle_delivery_creation(update: Update, context: CallbackContext) -> State:
     elastic_token = context.bot_data.get("elastic")
 
     if update.message.location:
@@ -201,7 +195,7 @@ def handle_customer_creation(update: Update, context: CallbackContext) -> State:
             )
             update.effective_message.delete()
 
-            return State.HANDLE_WAITING
+            return State.HANDLE_LOCATION
 
     pizzerias = elastic_api.get_all_entries(
         credential_token=elastic_token, slug="pizzeria"
@@ -376,12 +370,12 @@ def run_bot(
             State.HANDLE_CART: [
                 CallbackQueryHandler(handle_menu, pattern="back"),
                 CallbackQueryHandler(handle_location, pattern="checkout"),
-                CallbackQueryHandler(remove_from_cart, pattern="[0-9a-zA-Z_-]+"),
+                CallbackQueryHandler(handle_delete_from_cart, pattern="[0-9a-zA-Z_-]+"),
                 CallbackQueryHandler(handle_cart),
             ],
-            State.HANDLE_WAITING: [
-                MessageHandler(Filters.text, handle_customer_creation),
-                MessageHandler(Filters.location, handle_customer_creation),
+            State.HANDLE_LOCATION: [
+                MessageHandler(Filters.text, handle_delivery_creation),
+                MessageHandler(Filters.location, handle_delivery_creation),
                 CallbackQueryHandler(handle_cart, pattern="back"),
             ],
             State.HANDLE_DELIVERY: [

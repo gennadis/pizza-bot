@@ -113,13 +113,18 @@ def get_cart_markup(elastic_token: str, cart_id: str) -> InlineKeyboardMarkup:
     return cart_summary_text, cart_markup
 
 
-def get_email_markup() -> InlineKeyboardMarkup:
+def get_location_markup(user_first_name: str) -> InlineKeyboardMarkup:
+    location_text = f"""
+            {user_first_name},
+            Отправьте ваш адрес текстом или геопозицию для доставки.
+            """
+
     keyboard = [
         [InlineKeyboardButton(text="В меню", callback_data="back")],
     ]
-    email_markup = InlineKeyboardMarkup(keyboard)
+    location_markup = InlineKeyboardMarkup(keyboard)
 
-    return email_markup
+    return location_text, location_markup
 
 
 def get_delivery_markup() -> InlineKeyboardMarkup:
