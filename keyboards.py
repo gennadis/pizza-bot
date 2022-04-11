@@ -171,6 +171,23 @@ def get_delivery_markup(
     return nearest_pizzeria, delivery_details, delivery_markup
 
 
+def get_pickup_markup(nearest_pizzeria: dict) -> InlineKeyboardMarkup:
+    pickup_text = f"""
+                Ближайшая пиццерия:
+                {nearest_pizzeria['address']}
+                Расстояние: {nearest_pizzeria['distance']} км.
+                Самовывоз - бесплатно.
+
+                Спасибо за заказ!
+                """
+    keyboard = [
+        [InlineKeyboardButton(text="OK", callback_data="end")],
+    ]
+    pickup_markup = InlineKeyboardMarkup(keyboard)
+
+    return pickup_text, pickup_markup
+
+
 def get_payment_markup() -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(text="Оплатить", callback_data="pay")],

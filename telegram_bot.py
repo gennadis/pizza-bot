@@ -4,7 +4,6 @@ import time
 from enum import Enum, auto
 from textwrap import dedent
 
-
 import redis
 from dotenv import load_dotenv
 from telegram import Update, LabeledPrice
@@ -193,12 +192,11 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
                 user_first_name=update.effective_user.first_name
             )
             update.effective_user.send_message("Адрес не распознан. Повторите попытку.")
-            update.effective_message.delete()
             update.effective_user.send_message(
                 text=dedent(location_text),
                 reply_markup=location_markup,
             )
-
+            update.effective_message.delete()
             return State.HANDLE_LOCATION
 
     (
@@ -217,35 +215,35 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
         text=dedent(delivery_details),
         reply_markup=delivery_markup,
     )
-    update.effective_message.delete()
+    context.bot.delete_message(
+        chat_id=update.effective_chat.id,
+        message_id=update.effective_message.message_id,
+    )
 
     return State.HANDLE_DELIVERY
 
 
 def handle_courier_notification(update: Update, context: CallbackContext) -> State:
-    query = update.callback_query
-    query.answer()
-
     pizzeria_courier = context.bot_data["pizzeria"]["courier"]
     longitude, latitude = context.bot_data["coordinates"]
 
-    update.effective_user.send_message(
-        text="Оплатите заказ",
-        reply_markup=keyboards.get_payment_markup(),
+    context.bot.send_message(
+        chat_id=pizzeria_courier,
+        text="Сообщение для курьера. Доставьте заказ.",
     )
-    update.effective_message.delete()
+    context.bot.send_location(
+        chat_id=pizzeria_courier,
+        longitude=longitude,
+        latitude=latitude,
+    )
 
-    # context.bot.send_location(
-    #     chat_id=pizzeria_courier,
-    #     longitude=longitude,
-    #     latitude=latitude,
-    # )
+    handle_payment(update, context)
 
-    # context.job_queue.run_once(
-    #     callback=remind_delivery_status,
-    #     when=10,  # seconds
-    #     context=update.effective_user.id,
-    # )
+    context.job_queue.run_once(
+        callback=remind_delivery_status,
+        when=10,  # seconds
+        context=update.effective_user.id,
+    )
 
     return State.HANDLE_DELIVERY
 
@@ -266,22 +264,13 @@ def remind_delivery_status(context: CallbackContext):
 
 
 def handle_pickup(update: Update, context: CallbackContext) -> State:
-    query = update.callback_query
-    query.answer()
-    nearest_pizzeria = context.bot_data["pizzeria"]
+    pickup_text, pickup_markup = keyboards.get_pickup_markup(
+        nearest_pizzeria=context.bot_data["pizzeria"]
+    )
 
     update.effective_user.send_message(
-        text=dedent(
-            f"""
-                Ближайшая пиццерия:
-                {nearest_pizzeria['address']}
-                Расстояние: {nearest_pizzeria['distance']} км.
-                Самовывоз - бесплатно.
-
-                Спасибо за заказ!
-                """
-        ),
-        reply_markup=keyboards.get_payment_markup(),
+        text=dedent(pickup_text),
+        reply_markup=pickup_markup,
     )
     update.effective_message.delete()
 
@@ -364,7 +353,6 @@ def run_bot(
                     handle_courier_notification, pattern="delivery", pass_job_queue=True
                 ),
                 CallbackQueryHandler(handle_pickup, pattern="pickup"),
-                CallbackQueryHandler(handle_payment, pattern="pay"),
             ],
             State.HANDLE_PAYMENT: [
                 CallbackQueryHandler(handle_payment, pattern="pay"),
