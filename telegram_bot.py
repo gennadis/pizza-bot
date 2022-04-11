@@ -85,7 +85,6 @@ def handle_menu(update: Update, context: CallbackContext) -> State:
 
 @validate_token_expiration
 def handle_description(update: Update, context: CallbackContext) -> State:
-    elastic_token = context.bot_data.get("elastic")
     query = update.callback_query
     context.bot_data["product_id"] = query.data
 
@@ -94,7 +93,7 @@ def handle_description(update: Update, context: CallbackContext) -> State:
         product_description,
         description_markup,
     ) = keyboards.get_description_markup(
-        elastic_token=elastic_token,
+        elastic_token=context.bot_data.get("elastic"),
         product_id=query.data,
         user_id=update.effective_user.id,
     )
