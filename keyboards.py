@@ -1,7 +1,9 @@
 from textwrap import dedent
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 import elastic_api
 import geocode
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def get_menu_markup(elastic_token: str, user_first_name: str) -> InlineKeyboardMarkup:
@@ -186,13 +188,3 @@ def get_pickup_markup(nearest_pizzeria: dict) -> InlineKeyboardMarkup:
     pickup_markup = InlineKeyboardMarkup(keyboard)
 
     return pickup_text, pickup_markup
-
-
-def get_payment_markup() -> InlineKeyboardMarkup:
-    keyboard = [
-        [InlineKeyboardButton(text="Оплатить", callback_data="pay")],
-        [InlineKeyboardButton(text="В меню", callback_data="back")],
-    ]
-    payment_markup = InlineKeyboardMarkup(keyboard)
-
-    return payment_markup

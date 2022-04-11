@@ -1,9 +1,7 @@
-import os
 import time
 import urllib
 
 import requests
-from dotenv import load_dotenv
 
 
 def get_json_data(url: str) -> list[dict]:

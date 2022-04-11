@@ -7,7 +7,6 @@ from textwrap import dedent
 import redis
 from dotenv import load_dotenv
 from telegram import Update, LabeledPrice
-
 from telegram.ext import (
     CallbackContext,
     CallbackQueryHandler,
@@ -55,7 +54,7 @@ def validate_token_expiration(function_to_decorate):
                 client_id, client_secret
             )
 
-            context.bot_data["elastic"] = new_elastic_token["access_token"]
+            context.bot_data["elastic_token"] = new_elastic_token["access_token"]
             context.bot_data["token_expires"] = new_elastic_token["expires"]
 
             updated_args = update, context
@@ -69,7 +68,7 @@ def validate_token_expiration(function_to_decorate):
 @validate_token_expiration
 def handle_menu(update: Update, context: CallbackContext) -> State:
     welcome_text, menu_markup = keyboards.get_menu_markup(
-        elastic_token=context.bot_data.get("elastic"),
+        elastic_token=context.bot_data.get("elastic_token"),
         user_first_name=update.effective_user.first_name,
     )
 
@@ -92,7 +91,7 @@ def handle_description(update: Update, context: CallbackContext) -> State:
         product_description,
         description_markup,
     ) = keyboards.get_description_markup(
-        elastic_token=context.bot_data.get("elastic"),
+        elastic_token=context.bot_data.get("elastic_token"),
         product_id=query.data,
         user_id=update.effective_user.id,
     )
@@ -113,7 +112,7 @@ def handle_add_to_cart(update: Update, context: CallbackContext) -> State:
     query.answer("Товар добавлен в корзину")
 
     elastic_api.add_product_to_cart(
-        credential_token=context.bot_data.get("elastic"),
+        credential_token=context.bot_data.get("elastic_token"),
         product_id=context.bot_data["product_id"],
         quantity=int(query.data),
         cart_id=update.effective_user.id,
@@ -128,7 +127,7 @@ def handle_delete_from_cart(update: Update, context: CallbackContext) -> State:
     query.answer("Товар удален из корзины")
 
     elastic_api.delete_product_from_cart(
-        credential_token=context.bot_data.get("elastic"),
+        credential_token=context.bot_data.get("elastic_token"),
         cart_id=update.effective_user.id,
         product_id=query.data,
     )
@@ -140,7 +139,7 @@ def handle_delete_from_cart(update: Update, context: CallbackContext) -> State:
 @validate_token_expiration
 def handle_cart(update: Update, context: CallbackContext) -> State:
     cart_summary_text, cart_markup = keyboards.get_cart_markup(
-        elastic_token=context.bot_data.get("elastic"),
+        elastic_token=context.bot_data.get("elastic_token"),
         cart_id=update.effective_user.id,
     )
 
@@ -182,7 +181,7 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
     else:
         try:
             user_coordinates = geocode.get_coordinates(
-                yandex_token=context.bot_data.get("geocode"),
+                yandex_token=context.bot_data.get("geocode_token"),
                 address=update.message.text,
             )
 
@@ -204,7 +203,7 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
         delivery_details,
         delivery_markup,
     ) = keyboards.get_delivery_markup(
-        elastic_token=context.bot_data.get("elastic"),
+        elastic_token=context.bot_data.get("elastic_token"),
         user_coordinates=user_coordinates,
         user_id=update.effective_user.id,
     )
@@ -286,7 +285,7 @@ def handle_payment(update: Update, context: CallbackContext) -> State:
         provider_token=context.bot_data.get("payment_token"),
         start_parameter="test-payment",
         currency="RUB",
-        prices=[LabeledPrice("Test", 123 * 100)],
+        prices=[LabeledPrice("Pizza label", 123 * 100)],
     )
 
     return State.HANDLE_PAYMENT
@@ -317,11 +316,11 @@ def run_bot(
     updater = Updater(token=telegram_token, use_context=True)
     dispatcher = updater.dispatcher
     dispatcher.bot_data["redis"] = redis_connection
-    dispatcher.bot_data["elastic"] = elastic_token["access_token"]
+    dispatcher.bot_data["elastic_token"] = elastic_token["access_token"]
     dispatcher.bot_data["token_expires"] = elastic_token["expires"]
     dispatcher.bot_data["elastic_client_id"] = elastic_client_id
     dispatcher.bot_data["elastic_client_secret"] = elastic_client_secret
-    dispatcher.bot_data["geocode"] = geocode_token
+    dispatcher.bot_data["geocode_token"] = geocode_token
     dispatcher.bot_data["payment_token"] = payment_token
 
     conversation = ConversationHandler(

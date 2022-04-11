@@ -1,6 +1,5 @@
-from geopy import distance
-
 import requests
+from geopy import distance
 
 
 def get_coordinates(yandex_token: str, address: str) -> tuple[str, str]:
