@@ -7,7 +7,7 @@ from textwrap import dedent
 
 import redis
 from dotenv import load_dotenv
-from telegram import Update, LabeledPrice, 
+from telegram import Update, LabeledPrice
 
 from telegram.ext import (
     CallbackContext,
@@ -69,18 +69,17 @@ def validate_token_expiration(function_to_decorate):
 
 @validate_token_expiration
 def handle_menu(update: Update, context: CallbackContext) -> State:
-    user_first_name = update.effective_user.first_name
     elastic_token = context.bot_data.get("elastic")
-    products_markup = keyboards.get_menu_markup(elastic_token)
+    menu_markup = keyboards.get_menu_markup(elastic_token)
 
     update.effective_message.reply_text(
         text=dedent(
             f"""
-            Привет, {user_first_name}! 
+            Привет, {update.effective_user.first_name}! 
             Добро пожаловать в пиццерию "Pizza time"!
             """
         ),
-        reply_markup=products_markup,
+        reply_markup=menu_markup,
     )
     update.effective_message.delete()
 
