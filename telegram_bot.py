@@ -67,9 +67,13 @@ def validate_token_expiration(function_to_decorate):
 
 @validate_token_expiration
 def handle_menu(update: Update, context: CallbackContext) -> State:
+    query = update.callback_query
+    button_pressed = query.data if query else update.message.text
+
     welcome_text, menu_markup = keyboards.get_menu_markup(
         elastic_token=context.bot_data.get("elastic_token"),
         user_first_name=update.effective_user.first_name,
+        button_pressed=button_pressed,
     )
 
     update.effective_message.reply_text(
@@ -342,6 +346,7 @@ def run_bot(
             State.HANDLE_DESCRIPTION: [
                 CallbackQueryHandler(handle_menu, pattern="back"),
                 CallbackQueryHandler(handle_cart, pattern="cart"),
+                CallbackQueryHandler(handle_menu, pattern="^page [0-9]"),
                 CallbackQueryHandler(handle_add_to_cart, pattern="^[0-9]+$"),
                 CallbackQueryHandler(handle_description),
             ],

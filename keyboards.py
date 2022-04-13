@@ -1,31 +1,115 @@
 from textwrap import dedent
 
+from more_itertools import chunked
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 import elastic_api
 import geocode
 
 
+PRODUCTS_ON_MENU_PAGE = 8
+
+
 def get_menu_markup(
-    elastic_token: str, user_first_name: str
+    elastic_token: str,
+    user_first_name: str,
+    button_pressed: str,
 ) -> tuple[str, InlineKeyboardMarkup]:
     welcome_text = f"""
             Привет, {user_first_name}! 
             Добро пожаловать в пиццерию "Pizza time"!
             """
 
-    products = elastic_api.get_all_products(credential_token=elastic_token)["data"]
-    product_names_and_ids = [(product["name"], product["id"]) for product in products]
+    if button_pressed in ("/start", "back"):
+        current_page = 1
+    else:
+        _, current_page = button_pressed.split(" ")
+        current_page = int(current_page)
 
-    keyboard = [
-        [InlineKeyboardButton(text=product_name, callback_data=product_id)]
-        for product_name, product_id in product_names_and_ids
+    products = elastic_api.get_all_products(credential_token=elastic_token)
+    product_chunks = list(chunked(iterable=products["data"], n=PRODUCTS_ON_MENU_PAGE))
+    product_buttons_details = [
+        (product["name"], product["id"]) for product in product_chunks[current_page - 1]
     ]
-    keyboard.append([InlineKeyboardButton("Корзина", callback_data="cart")])
+
+    total_pages = len(product_chunks)
+    next_page, prev_page = current_page + 1, current_page - 1
+    # cycle through pages
+    if current_page == total_pages:
+        next_page = 1
+    elif current_page == 1:
+        prev_page = total_pages
+
+    print(f"PRODUCTS COUNT {len(products['data'])}")
+    print(f"PRODUCTS ON PAGE {PRODUCTS_ON_MENU_PAGE}")
+    print(f"TOTAL PAGES {total_pages}")
+    print()
+
+    keyboard = []
+    for product in product_buttons_details:
+        product_name, product_id = product
+        keyboard.append(
+            [InlineKeyboardButton(text=product_name, callback_data=product_id)]
+        )
+
+    keyboard.append(
+        [
+            InlineKeyboardButton("<-", callback_data=f"page {prev_page}"),
+            InlineKeyboardButton("Корзина", callback_data="cart"),
+            InlineKeyboardButton("->", callback_data=f"page {next_page}"),
+        ]
+    )
+
+    # product_names_and_ids = [(product["name"], product["id"]) for product in products]
+
+    # keyboard = [
+    #     [InlineKeyboardButton(text=product_name, callback_data=product_id)]
+    #     for product_name, product_id in product_names_and_ids
+    # ]
+    # keyboard.append([InlineKeyboardButton("Корзина", callback_data="cart")])
 
     menu_markup = InlineKeyboardMarkup(keyboard)
 
     return welcome_text, menu_markup
+
+
+def build_paginated_keyboard(
+    products: list[dict], products_on_page: int, current_page: int
+) -> InlineKeyboardMarkup:
+    product_chunks = list(chunked(iterable=products["data"], n=products_on_page))
+    product_buttons_details = [
+        (product["name"], product["id"]) for product in product_chunks[current_page - 1]
+    ]
+
+    total_pages = len(product_chunks)
+    next_page, prev_page = current_page + 1, current_page - 1
+    # cycle through pages
+    if current_page == total_pages:
+        next_page = 1
+    elif current_page == 1:
+        prev_page = total_pages
+
+    print(f"PRODUCTS COUNT {len(products['data'])}")
+    print(f"PRODUCTS ON PAGE {products_on_page}")
+    print(f"TOTAL PAGES {total_pages}")
+    print()
+
+    keyboard = []
+    for product in product_buttons_details:
+        product_name, product_id = product
+        keyboard.append(
+            [InlineKeyboardButton(text=product_name, callback_data=product_id)]
+        )
+
+    keyboard.append(
+        [
+            InlineKeyboardButton(prev_page, callback_data="prev"),
+            InlineKeyboardButton("CART", callback_data="cart"),
+            InlineKeyboardButton(next_page, callback_data="next"),
+        ]
+    )
+
+    return InlineKeyboardMarkup(keyboard)
 
 
 def get_product_in_cart_count(elastic_token: str, product_id: str, cart_id: str) -> int:
