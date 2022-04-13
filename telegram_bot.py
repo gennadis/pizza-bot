@@ -146,7 +146,7 @@ def handle_cart(update: Update, context: CallbackContext) -> State:
         elastic_token=context.bot_data.get("elastic_token"),
         cart_id=update.effective_user.id,
     )
-    context.bot_data["total_price"] = total_price
+    context.user_data["total_price"] = total_price
 
     update.effective_user.send_message(
         text=dedent(cart_summary_text),
@@ -215,7 +215,7 @@ def handle_delivery(update: Update, context: CallbackContext) -> State:
     )
     context.bot_data["pizzeria"] = nearest_pizzeria
     context.bot_data["coordinates"] = user_coordinates
-    context.bot_data["delivery_price"] = delivery_price
+    context.user_data["delivery_price"] = delivery_price
 
     update.effective_user.send_message(
         text=dedent(delivery_text),
@@ -284,8 +284,8 @@ def handle_pickup(update: Update, context: CallbackContext) -> State:
 
 
 def handle_payment(update: Update, context: CallbackContext) -> State:
-    total_price = context.bot_data.get("total_price")
-    delivery_price = context.bot_data.get("delivery_price")
+    total_price = context.user_data.get("total_price")
+    delivery_price = context.user_data.get("delivery_price")
 
     context.bot.send_invoice(
         chat_id=update.effective_user.id,
