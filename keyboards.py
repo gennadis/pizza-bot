@@ -115,7 +115,7 @@ def get_cart_markup(
     keyboard.append([InlineKeyboardButton(text="В меню", callback_data="back")])
     cart_markup = InlineKeyboardMarkup(keyboard)
 
-    return cart_summary_text, cart_markup
+    return total_price, cart_summary_text, cart_markup
 
 
 def get_location_markup(user_first_name: str) -> tuple[str, InlineKeyboardMarkup]:
@@ -152,19 +152,23 @@ def get_delivery_markup(
     )
 
     if nearest_pizzeria["distance"] <= 0.5:
-        delivery_options = "Предлагаем забрать пиццу самостоятельно или воспользоваться бесплатной доставкой."
+        delivery_description = "Предлагаем забрать пиццу самостоятельно или воспользоваться бесплатной доставкой."
+        delivery_price = 0
     elif nearest_pizzeria["distance"] <= 5:
-        delivery_options = "Предлагаем доплатить за доставку 100 рублей."
+        delivery_description = "Предлагаем доплатить за доставку 100 рублей."
+        delivery_price = 100
     elif nearest_pizzeria["distance"] <= 20:
-        delivery_options = "Предлагаем доплатить за доставку 300 рублей."
+        delivery_description = "Предлагаем доплатить за доставку 300 рублей."
+        delivery_price = 300
     else:
-        delivery_options = "Предлагаем самовывоз."
+        delivery_description = "Предлагаем самовывоз."
+        delivery_price = 0
 
-    delivery_details = f"""
+    delivery_text = f"""
     Ближайшая пиццерия:
     {nearest_pizzeria['address']}
     Расстояние: {nearest_pizzeria['distance']} км.
-    {delivery_options}"""
+    {delivery_description}"""
 
     keyboard = [
         [InlineKeyboardButton(text="Самовывоз", callback_data="pickup")],
@@ -172,7 +176,7 @@ def get_delivery_markup(
     ]
     delivery_markup = InlineKeyboardMarkup(keyboard)
 
-    return nearest_pizzeria, delivery_details, delivery_markup
+    return nearest_pizzeria, delivery_text, delivery_price, delivery_markup
 
 
 def get_pickup_markup(nearest_pizzeria: dict) -> tuple[str, InlineKeyboardMarkup]:
