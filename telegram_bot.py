@@ -277,7 +277,7 @@ def handle_pickup(update: Update, context: CallbackContext) -> State:
 
 
 def handle_payment(update: Update, context: CallbackContext) -> State:
-    context.bot.sendInvoice(
+    context.bot.send_invoice(
         chat_id=update.effective_user.id,
         title="Pizza payment",
         description="Pizza payment description",
